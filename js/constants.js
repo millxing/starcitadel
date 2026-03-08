@@ -22,13 +22,13 @@ SC.CONST = {
     RING_INNER_RADIUS: 80,
     RING_THICKNESS: 4,
     RING_SEGMENT_COUNT: 12,
-    RING_GAP_DEGREES: 3,
+    RING_GAP_DEGREES: 5,
     RING_BASE_SPEED: 0.35,
     RING_SPEED_INCREMENT: 0.06,
 
     // Cannon
     CANNON_RADIUS: 18,
-    CANNON_INNER_RADIUS: 8,
+    CANNON_INNER_RADIUS: 16,
     CANNON_TRACK_SPEED_BASE: 1.2,
     CANNON_TRACK_SPEED_INCREMENT: 0.15,
     CANNON_FIRE_COOLDOWN: 2.0,
@@ -74,9 +74,9 @@ SC.CONST = {
 };
 
 // Speed multipliers (adjusted via pause menu, persisted)
-SC.shipSpeedMult = 1;
-SC.enemySpeedMult = 1;
-SC.rotateSpeedMult = 1;
+SC.shipSpeedMult = 1.25;
+SC.enemySpeedMult = 0.75;
+SC.rotateSpeedMult = 0.5;
 
 (function() {
     try {

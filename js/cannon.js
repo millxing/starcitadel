@@ -69,21 +69,28 @@ SC.Cannon = class Cannon {
 
         const C = SC.CONST;
         const pulse = 0.8 + 0.2 * Math.sin(this.pulsePhase);
+        const r = C.CANNON_INNER_RADIUS; // 8px base size
 
-        // Outer ring of cannon
-        renderer.drawCircle(this.pos.x, this.pos.y, C.CANNON_RADIUS, C.COLOR_CANNON, 2, 15 * pulse);
-
-        // Inner core
-        renderer.drawFilledCircle(this.pos.x, this.pos.y, C.CANNON_INNER_RADIUS, C.COLOR_CANNON, 10 * pulse);
-
-        // Aim indicator line
+        // Rotating diamond/kite shape pointing toward player
         const dir = SC.Vec2.fromAngle(this.aimAngle);
+        const perp = SC.Vec2.fromAngle(this.aimAngle + Math.PI / 2);
+
+        const front = { x: this.pos.x + dir.x * r * 1.8,  y: this.pos.y + dir.y * r * 1.8  };
+        const right = { x: this.pos.x + perp.x * r * 1.0, y: this.pos.y + perp.y * r * 1.0 };
+        const back  = { x: this.pos.x - dir.x * r * 1.2,  y: this.pos.y - dir.y * r * 1.2  };
+        const left  = { x: this.pos.x - perp.x * r * 1.0, y: this.pos.y - perp.y * r * 1.0 };
+
+        renderer.drawPolygon([front, right, back, left], C.COLOR_CANNON, 2, 12 * pulse);
+
+        // Small crossbar near the front to distinguish facing direction
+        const barDist = r * 0.7; // 40% of the way from center to front tip
+        const barHalf = r * 0.45;
+        const bx = this.pos.x + dir.x * barDist;
+        const by = this.pos.y + dir.y * barDist;
         renderer.drawLine(
-            this.pos.x + dir.x * C.CANNON_INNER_RADIUS,
-            this.pos.y + dir.y * C.CANNON_INNER_RADIUS,
-            this.pos.x + dir.x * C.CANNON_RADIUS,
-            this.pos.y + dir.y * C.CANNON_RADIUS,
-            C.COLOR_CANNON, 2, 8
+            bx + perp.x * barHalf, by + perp.y * barHalf,
+            bx - perp.x * barHalf, by - perp.y * barHalf,
+            C.COLOR_CANNON, 1.5, 8 * pulse
         );
     }
 

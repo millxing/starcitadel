@@ -36,7 +36,11 @@ SC.Game = class Game {
         this.lives = SC.CONST.STARTING_LIVES;
         this.level = 0;
         this.state = 'playing';
+        this.debris = [];
         this.audio.playGameStart();
+        // Clear input so the Space/fire key that started the game doesn't auto-fire
+        this.input.keys = {};
+        this.input.prev = {};
         this.startLevel();
     }
 
@@ -67,10 +71,10 @@ SC.Game = class Game {
         this.mines = [];
         this.mineRespawnTimers = [];
 
-        // Spawn initial mines with staggered delays
+        // Spawn initial mines with staggered delays, one per ring
         const mineCount = this.getMineCount();
         for (let i = 0; i < mineCount; i++) {
-            this.mineRespawnTimers.push(1 + i * 0.8);
+            this.mineRespawnTimers.push({ timer: 1 + i * 0.8, ringIndex: i % 3 });
         }
     }
 
@@ -92,12 +96,12 @@ SC.Game = class Game {
         // Keep player where they are — no teleport
         // Keep existing bullets and cannon bullets
 
-        // Clear old mine respawn timers, schedule new mines
+        // Clear old mine respawn timers, schedule new mines on rings
         this.mineRespawnTimers = [];
         const currentMines = this.mines.length;
         const needed = Math.max(0, this.getMineCount() - currentMines);
         for (let i = 0; i < needed; i++) {
-            this.mineRespawnTimers.push(2 + i * 0.8);
+            this.mineRespawnTimers.push({ timer: 2 + i * 0.8, ringIndex: i % 3 });
         }
     }
 
@@ -175,8 +179,36 @@ SC.Game = class Game {
 
         if (this.state === 'levelTransition') {
             this.levelTransitionTimer -= dt;
+
+            // Check if implosion completed — trigger explosion
+            if (this._imploding && this.ringSystem.isCollapsed()) {
+                this._triggerExplosion();
+            }
+
+            // Update debris
+            if (this.debris && this.debris.length > 0) {
+                for (const d of this.debris) d.update(dt);
+                this.debris = this.debris.filter(d => d.alive);
+
+                // Debris vs player (bounce, no damage)
+                if (this.player.alive) {
+                    const playerR = SC.CONST.PLAYER_SIZE * 0.5;
+                    for (const d of this.debris) {
+                        if (!d.alive) continue;
+                        const dist = this.player.pos.distTo(d.pos);
+                        if (dist < playerR + d.radius) {
+                            // Push player away from debris
+                            const pushDir = this.player.pos.sub(d.pos).normalize();
+                            this.player.vel = pushDir.scale(200);
+                            this.player.pos = d.pos.add(pushDir.scale(playerR + d.radius + 2));
+                        }
+                    }
+                }
+            }
+
             if (this.levelTransitionTimer <= 0) {
                 this.state = 'playing';
+                this.debris = [];
                 this.startNextLevel();
                 this.input.update();
                 return;
@@ -251,9 +283,10 @@ SC.Game = class Game {
 
         // Mine respawn
         for (let i = 0; i < this.mineRespawnTimers.length; i++) {
-            this.mineRespawnTimers[i] -= dt;
-            if (this.mineRespawnTimers[i] <= 0) {
-                this.mines.push(new SC.Mine(r.cx, r.cy, this.getMineSpeed()));
+            this.mineRespawnTimers[i].timer -= dt;
+            if (this.mineRespawnTimers[i].timer <= 0) {
+                const ri = this.mineRespawnTimers[i].ringIndex;
+                this.mines.push(new SC.Mine(r.cx, r.cy, this.getMineSpeed(), this.ringSystem, ri));
                 this.mineRespawnTimers.splice(i, 1);
                 i--;
             }
@@ -356,8 +389,8 @@ SC.Game = class Game {
                     mine.alive = false;
                     this.particles.emit(mine.pos.x, mine.pos.y, 6, '#ffffff', 60, 0.4, 1.5);
                     this.audio.playMineDestroyed();
-                    // Schedule respawn
-                    this.mineRespawnTimers.push(SC.CONST.MINE_SPAWN_DELAY);
+                    // Schedule respawn on a random ring
+                    this.mineRespawnTimers.push({ timer: SC.CONST.MINE_SPAWN_DELAY, ringIndex: Math.floor(Math.random() * 3) });
                     break;
                 }
             }
@@ -398,24 +431,61 @@ SC.Game = class Game {
         const cx = this.renderer.cx;
         const cy = this.renderer.cy;
 
-        // Big explosion
-        this.particles.emit(cx, cy, 60, '#ffff00', 200, 1.2, 3);
-        this.particles.emit(cx, cy, 40, '#ff8800', 150, 1.0, 2);
-        this.particles.emit(cx, cy, 30, '#ffffff', 250, 0.8, 2);
-        this.particles.emitRing(cx, cy, 32, '#ff4400', 180, 0.8);
+        // Small initial burst at cannon
+        this.particles.emit(cx, cy, 20, '#ffff00', 100, 0.5, 2);
+        this.particles.emit(cx, cy, 15, '#ffffff', 80, 0.4, 1.5);
 
         this.cannon.alive = false;
         this.addScore(SC.CONST.CANNON_DESTROY_BONUS);
-        this.audio.playCannonDestroyed();
         this.audio.stopHum();
 
-        // Don't clear mines/bullets — they stay active during transition
-        // so the player can still be hit by a last cannon shot or mine
+        // Start ring implosion — rings collapse toward center
+        this.ringSystem.startCollapse();
+        this._imploding = true;
+        this._implodeExploded = false;
+        this.debris = this.debris || [];
 
-        // Level transition — game keeps running
+        // Don't clear mines/bullets — they stay active during transition
+
+        // Level transition — game keeps running (longer to fit implosion + explosion)
         this.state = 'levelTransition';
-        this.levelTransitionTimer = 2.0;
+        this.levelTransitionTimer = 3.0;
+    }
+
+    _triggerExplosion() {
+        const cx = this.renderer.cx;
+        const cy = this.renderer.cy;
+
+        // Extract surviving segments as debris
+        const debrisData = this.ringSystem.getDebrisData();
+        for (const d of debrisData) {
+            const outAngle = d.angle + (Math.random() - 0.5) * 0.5;
+            const speed = 150 + Math.random() * 250;
+            this.debris.push(new SC.Debris(
+                d.x, d.y,
+                Math.cos(outAngle) * speed,
+                Math.sin(outAngle) * speed,
+                d.lineLength,
+                d.color
+            ));
+        }
+
+        // Destroy all ring segments so they stop drawing
+        for (const ring of this.ringSystem.rings) {
+            for (const seg of ring.segments) seg.health = 0;
+        }
+
+        // Big explosion particles from center
+        this.particles.emit(cx, cy, 80, '#ffff00', 250, 1.5, 3);
+        this.particles.emit(cx, cy, 50, '#ff8800', 200, 1.2, 2.5);
+        this.particles.emit(cx, cy, 40, '#ffffff', 300, 1.0, 2);
+        this.particles.emitRing(cx, cy, 40, '#ff4400', 220, 1.0);
+
+        this.audio.playCannonDestroyed();
         this.audio.playLevelComplete();
+
+        this._imploding = false;
+        this._implodeExploded = true;
     }
 
 
@@ -449,6 +519,11 @@ SC.Game = class Game {
 
         if (this.player) this.player.draw(r, this.time);
 
+        // Debris (flying ring segments after implosion)
+        if (this.debris) {
+            for (const d of this.debris) d.draw(r);
+        }
+
         this.particles.drawParticles(r);
 
         if (this.state === 'playing' || this.state === 'paused' || this.state === 'levelTransition') {
@@ -456,7 +531,10 @@ SC.Game = class Game {
         }
 
         if (this.state === 'levelTransition') {
-            r.drawText('LEVEL ' + (this.level + 1), r.cx, r.cy, 36, '#ffffff', 'center', 12);
+            // Show "LEVEL X" after explosion, not during implosion
+            if (this._implodeExploded) {
+                r.drawText('LEVEL ' + (this.level + 1), r.cx, r.cy, 36, '#ffffff', 'center', 12);
+            }
         }
     }
 
@@ -466,23 +544,46 @@ SC.Game = class Game {
         const cy = r.cy;
         const t = this.time;
 
-        // Decorative rotating rings
+        // Decorative rotating rings (dodecagons)
         for (let ring = 0; ring < 3; ring++) {
             const radius = [160, 120, 80][ring];
             const color = [SC.CONST.COLOR_OUTER_RING, SC.CONST.COLOR_MIDDLE_RING, SC.CONST.COLOR_INNER_RING][ring];
             const speed = [1, -0.8, 0.6][ring];
-            const segAngle = Math.PI * 2 / 12;
-            const gapRad = 3 * Math.PI / 180;
+            const n = 12;
+            const segAngle = Math.PI * 2 / n;
 
-            for (let i = 0; i < 12; i++) {
-                const start = i * segAngle + gapRad / 2 + t * speed;
-                const end = start + segAngle - gapRad;
-                r.drawArc(cx, cy, radius, start, end, color, 3, 10);
+            for (let i = 0; i < n; i++) {
+                const a1 = i * segAngle + t * speed;
+                const a2 = (i + 1) * segAngle + t * speed;
+                r.drawLine(
+                    cx + Math.cos(a1) * radius, cy + Math.sin(a1) * radius,
+                    cx + Math.cos(a2) * radius, cy + Math.sin(a2) * radius,
+                    color, 3, 8
+                );
             }
         }
 
-        // Cannon
-        r.drawCircle(cx, cy, 18, SC.CONST.COLOR_CANNON, 2, 12);
-        r.drawFilledCircle(cx, cy, 8, SC.CONST.COLOR_CANNON, 8);
+        // Cannon — rotating diamond
+        const cannonAngle = t * 0.5;
+        const cannonR = SC.CONST.CANNON_INNER_RADIUS;
+        const cDir = SC.Vec2.fromAngle(cannonAngle);
+        const cPerp = SC.Vec2.fromAngle(cannonAngle + Math.PI / 2);
+        r.drawPolygon([
+            { x: cx + cDir.x * cannonR * 1.8,  y: cy + cDir.y * cannonR * 1.8  },
+            { x: cx + cPerp.x * cannonR * 1.0, y: cy + cPerp.y * cannonR * 1.0 },
+            { x: cx - cDir.x * cannonR * 1.2,  y: cy - cDir.y * cannonR * 1.2  },
+            { x: cx - cPerp.x * cannonR * 1.0, y: cy - cPerp.y * cannonR * 1.0 },
+        ], SC.CONST.COLOR_CANNON, 2, 12);
+
+        // Crossbar detail near front
+        const barDist = cannonR * 0.7;
+        const barHalf = cannonR * 0.45;
+        const bx = cx + cDir.x * barDist;
+        const by = cy + cDir.y * barDist;
+        r.drawLine(
+            bx + cPerp.x * barHalf, by + cPerp.y * barHalf,
+            bx - cPerp.x * barHalf, by - cPerp.y * barHalf,
+            SC.CONST.COLOR_CANNON, 1.5, 8
+        );
     }
 };

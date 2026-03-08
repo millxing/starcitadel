@@ -64,13 +64,18 @@ SC.Player = class Player {
 
     getVertices() {
         const s = SC.CONST.PLAYER_SIZE;
-        const nose = SC.Vec2.fromAngle(this.angle).scale(s);
-        const left = SC.Vec2.fromAngle(this.angle + 2.4).scale(s * 0.7);
-        const right = SC.Vec2.fromAngle(this.angle - 2.4).scale(s * 0.7);
+        // Classic Asteroids-style 5-point ship with deep rear notch
+        const nose      = SC.Vec2.fromAngle(this.angle).scale(s);
+        const rightWing = SC.Vec2.fromAngle(this.angle - 2.3).scale(s * 0.8);
+        const rightIn   = SC.Vec2.fromAngle(this.angle + Math.PI + 0.35).scale(s * 0.25);
+        const leftIn    = SC.Vec2.fromAngle(this.angle + Math.PI - 0.35).scale(s * 0.25);
+        const leftWing  = SC.Vec2.fromAngle(this.angle + 2.3).scale(s * 0.8);
         return [
             this.pos.add(nose),
-            this.pos.add(left),
-            this.pos.add(right)
+            this.pos.add(rightWing),
+            this.pos.add(rightIn),
+            this.pos.add(leftIn),
+            this.pos.add(leftWing)
         ];
     }
 
@@ -83,14 +88,13 @@ SC.Player = class Player {
         const verts = this.getVertices();
         renderer.drawPolygon(verts, SC.CONST.COLOR_SHIP, 1.5, 10);
 
-        // Thrust flame
+        // Thrust flame — emerges from rear notch
         if (this.thrustOn) {
             const s = SC.CONST.PLAYER_SIZE;
-            const back = SC.Vec2.fromAngle(this.angle + Math.PI).scale(s * 0.7);
             const flameLen = s * (0.4 + Math.random() * 0.4);
-            const flameTip = this.pos.add(SC.Vec2.fromAngle(this.angle + Math.PI).scale(s * 0.7 + flameLen));
-            const fl = this.pos.add(SC.Vec2.fromAngle(this.angle + Math.PI + 0.3).scale(s * 0.45));
-            const fr = this.pos.add(SC.Vec2.fromAngle(this.angle + Math.PI - 0.3).scale(s * 0.45));
+            const flameTip = this.pos.add(SC.Vec2.fromAngle(this.angle + Math.PI).scale(s * 0.25 + flameLen));
+            const fl = this.pos.add(SC.Vec2.fromAngle(this.angle + Math.PI - 0.35).scale(s * 0.25));
+            const fr = this.pos.add(SC.Vec2.fromAngle(this.angle + Math.PI + 0.35).scale(s * 0.25));
             renderer.drawPolygon([fl, flameTip, fr], '#ff8800', 1, 8);
         }
     }

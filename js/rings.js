@@ -7,9 +7,8 @@ SC.RingSegment = class RingSegment {
         this.index = index;
         this.health = 2; // 2=full, 1=damaged, 0=destroyed
         const segAngle = TWO_PI / SC.CONST.RING_SEGMENT_COUNT;
-        const gapRad = SC.CONST.RING_GAP_DEGREES * Math.PI / 180;
-        this.localStart = index * segAngle + gapRad / 2;
-        this.arcLength = segAngle - gapRad;
+        this.localStart = index * segAngle;
+        this.arcLength = segAngle;
     }
 
     reset() { this.health = 2; }
@@ -30,12 +29,19 @@ SC.Ring = class Ring {
     }
 
     update(dt) {
-        this.rotationOffset += this.rotationSpeed * (SC.enemySpeedMult || 1) * dt;
-        // Animate radius toward target
-        if (Math.abs(this.radius - this.targetRadius) > 0.5) {
-            this.radius += (this.targetRadius - this.radius) * 4 * dt;
+        if (this.collapsing) {
+            // Accelerating inward + spin faster as it collapses
+            this.collapseVel = (this.collapseVel || 0) + 500 * dt;
+            this.radius = Math.max(0, this.radius - this.collapseVel * dt);
+            this.rotationOffset += this.rotationSpeed * 4 * dt;
         } else {
-            this.radius = this.targetRadius;
+            this.rotationOffset += this.rotationSpeed * (SC.enemySpeedMult || 1) * dt;
+            // Animate radius toward target
+            if (Math.abs(this.radius - this.targetRadius) > 0.5) {
+                this.radius += (this.targetRadius - this.radius) * 4 * dt;
+            } else {
+                this.radius = this.targetRadius;
+            }
         }
     }
 
@@ -62,14 +68,21 @@ SC.Ring = class Ring {
     }
 
     draw(renderer, cx, cy) {
+        const n = SC.CONST.RING_SEGMENT_COUNT;
         for (let i = 0; i < this.segments.length; i++) {
             const seg = this.segments[i];
             if (seg.health <= 0) continue;
-            const { start, end } = this.getSegmentWorldAngles(i);
             const color = seg.health === 2 ? this.color : this.dimColor;
             const width = seg.health === 2 ? SC.CONST.RING_THICKNESS : SC.CONST.RING_THICKNESS * 0.6;
-            const glow = seg.health === 2 ? 12 : 6;
-            renderer.drawArc(cx, cy, this.radius, start, end, color, width, glow);
+            const glow = seg.health === 2 ? 8 : 4;
+            // Straight line from vertex i to vertex i+1
+            const a1 = (i * TWO_PI / n) + this.rotationOffset;
+            const a2 = ((i + 1) * TWO_PI / n) + this.rotationOffset;
+            renderer.drawLine(
+                cx + Math.cos(a1) * this.radius, cy + Math.sin(a1) * this.radius,
+                cx + Math.cos(a2) * this.radius, cy + Math.sin(a2) * this.radius,
+                color, width, glow
+            );
         }
     }
 };
@@ -288,9 +301,85 @@ SC.RingSystem = class RingSystem {
         return false;
     }
 
+    startCollapse() {
+        for (const ring of this.rings) {
+            ring.collapsing = true;
+            ring.collapseVel = 0;
+        }
+    }
+
+    isCollapsed() {
+        return this.rings.every(r => r.radius <= 5);
+    }
+
+    // Extract surviving segments as debris spawn data
+    getDebrisData() {
+        const debris = [];
+        const n = SC.CONST.RING_SEGMENT_COUNT;
+        const segAngle = TWO_PI / n;
+        for (const ring of this.rings) {
+            const chordLength = 2 * ring.radius * Math.sin(segAngle / 2);
+            for (let i = 0; i < ring.segments.length; i++) {
+                const seg = ring.segments[i];
+                if (seg.health <= 0) continue;
+                const { start, end } = ring.getSegmentWorldAngles(i);
+                const midAngle = SC.normalizeAngle(start + ((end - start + TWO_PI) % TWO_PI) / 2);
+                debris.push({
+                    x: this.cx + Math.cos(midAngle) * ring.radius,
+                    y: this.cy + Math.sin(midAngle) * ring.radius,
+                    angle: midAngle,
+                    lineLength: chordLength,
+                    color: ring.color,
+                    health: seg.health,
+                });
+            }
+        }
+        return debris;
+    }
+
     draw(renderer) {
         for (let r = 2; r >= 0; r--) {
             this.rings[r].draw(renderer, this.cx, this.cy);
         }
+    }
+};
+
+// Debris: a flying ring segment that explodes outward after implosion
+SC.Debris = class Debris {
+    constructor(x, y, vx, vy, lineLength, color) {
+        this.pos = new SC.Vec2(x, y);
+        this.vel = new SC.Vec2(vx, vy);
+        this.angle = Math.random() * TWO_PI;
+        this.spin = (Math.random() - 0.5) * 8;
+        this.lineLength = lineLength;
+        this.color = color;
+        this.life = 2.0;
+        this.maxLife = 2.0;
+        this.alive = true;
+        this.radius = 6; // collision radius
+    }
+
+    update(dt) {
+        this.pos = this.pos.add(this.vel.scale(dt));
+        this.vel = this.vel.scale(1 - 0.5 * dt); // drag
+        this.angle += this.spin * dt;
+        this.life -= dt;
+        if (this.life <= 0) this.alive = false;
+    }
+
+    draw(renderer) {
+        if (!this.alive) return;
+        const alpha = Math.min(1, this.life / this.maxLife);
+        const ctx = renderer.ctx;
+        ctx.globalAlpha = alpha;
+        const half = this.lineLength / 2;
+        const dx = Math.cos(this.angle) * half;
+        const dy = Math.sin(this.angle) * half;
+        renderer.drawLine(
+            this.pos.x - dx, this.pos.y - dy,
+            this.pos.x + dx, this.pos.y + dy,
+            this.color, 3, 8 * alpha
+        );
+        ctx.globalAlpha = 1;
     }
 };

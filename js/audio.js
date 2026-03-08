@@ -324,68 +324,98 @@ SC.Audio = class Audio {
     }
 
     // ===== ONE-SHOT: Cannon Destroyed =====
-    // Massive cascading explosion
+    // Massive cascading explosion — significantly louder and more impactful
     playCannonDestroyed() {
         if (!this._ensure()) return;
         const ctx = this.ctx;
         const now = ctx.currentTime;
 
-        // Huge noise burst
+        // Huge noise burst — louder and longer
         const noise = ctx.createBufferSource();
-        noise.buffer = this._noiseBuffer(2.5);
+        noise.buffer = this._noiseBuffer(3.0);
         const lpf = ctx.createBiquadFilter();
         lpf.type = 'lowpass';
-        lpf.frequency.setValueAtTime(5000, now);
-        lpf.frequency.exponentialRampToValueAtTime(100, now + 2.0);
+        lpf.frequency.setValueAtTime(6000, now);
+        lpf.frequency.exponentialRampToValueAtTime(80, now + 2.5);
         const noiseGain = ctx.createGain();
-        noiseGain.gain.setValueAtTime(0.4, now);
-        noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 2.0);
+        noiseGain.gain.setValueAtTime(0.7, now);
+        noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 2.5);
 
         noise.connect(lpf);
         lpf.connect(noiseGain);
         noiseGain.connect(this.masterGain);
         noise.start(now);
-        noise.stop(now + 2.0);
+        noise.stop(now + 2.5);
 
-        // Cascading descending tones — like things breaking apart
+        // Cascading descending tones — louder
         const tones = [
             { f: 440, t: 0.0 },
-            { f: 350, t: 0.1 },
-            { f: 260, t: 0.2 },
-            { f: 190, t: 0.35 },
-            { f: 130, t: 0.5 },
-            { f: 80,  t: 0.7 },
+            { f: 350, t: 0.08 },
+            { f: 260, t: 0.16 },
+            { f: 190, t: 0.28 },
+            { f: 130, t: 0.4 },
+            { f: 80,  t: 0.55 },
         ];
         for (const tone of tones) {
             const osc = ctx.createOscillator();
             osc.type = 'sawtooth';
             osc.frequency.setValueAtTime(tone.f, now + tone.t);
-            osc.frequency.exponentialRampToValueAtTime(tone.f * 0.15, now + tone.t + 0.6);
+            osc.frequency.exponentialRampToValueAtTime(tone.f * 0.12, now + tone.t + 0.7);
 
             const gain = ctx.createGain();
             gain.gain.setValueAtTime(0, now + tone.t);
-            gain.gain.linearRampToValueAtTime(0.12, now + tone.t + 0.02);
-            gain.gain.exponentialRampToValueAtTime(0.001, now + tone.t + 0.6);
+            gain.gain.linearRampToValueAtTime(0.2, now + tone.t + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + tone.t + 0.7);
 
             osc.connect(gain);
             gain.connect(this.masterGain);
             osc.start(now + tone.t);
-            osc.stop(now + tone.t + 0.6);
+            osc.stop(now + tone.t + 0.7);
         }
 
-        // Low boom
+        // Sub-bass impact — deep chest-thump
+        const sub = ctx.createOscillator();
+        sub.type = 'sine';
+        sub.frequency.setValueAtTime(40, now);
+        sub.frequency.exponentialRampToValueAtTime(15, now + 2.0);
+        const subGain = ctx.createGain();
+        subGain.gain.setValueAtTime(0.6, now);
+        subGain.gain.exponentialRampToValueAtTime(0.001, now + 2.0);
+
+        sub.connect(subGain);
+        subGain.connect(this.masterGain);
+        sub.start(now);
+        sub.stop(now + 2.0);
+
+        // Mid-frequency boom punch
         const boom = ctx.createOscillator();
         boom.type = 'sine';
-        boom.frequency.setValueAtTime(60, now);
-        boom.frequency.exponentialRampToValueAtTime(20, now + 1.5);
+        boom.frequency.setValueAtTime(80, now);
+        boom.frequency.exponentialRampToValueAtTime(25, now + 1.5);
         const boomGain = ctx.createGain();
-        boomGain.gain.setValueAtTime(0.3, now);
+        boomGain.gain.setValueAtTime(0.5, now);
         boomGain.gain.exponentialRampToValueAtTime(0.001, now + 1.5);
 
         boom.connect(boomGain);
         boomGain.connect(this.masterGain);
         boom.start(now);
         boom.stop(now + 1.5);
+
+        // High-frequency shatter
+        const shatter = ctx.createBufferSource();
+        shatter.buffer = this._noiseBuffer(0.6);
+        const hpf = ctx.createBiquadFilter();
+        hpf.type = 'highpass';
+        hpf.frequency.value = 4000;
+        const shatterGain = ctx.createGain();
+        shatterGain.gain.setValueAtTime(0.35, now);
+        shatterGain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+
+        shatter.connect(hpf);
+        hpf.connect(shatterGain);
+        shatterGain.connect(this.masterGain);
+        shatter.start(now);
+        shatter.stop(now + 0.5);
     }
 
     // ===== ONE-SHOT: Cannon Fire =====

@@ -72,7 +72,7 @@ SC.Menu = class Menu {
         const settingsHeader = this._sectionHeader('SETTINGS');
         panel.appendChild(settingsHeader);
 
-        this.enemySlider = this._sliderRow('Enemy Speed', SC.enemySpeedMult, (val) => {
+        this.enemySlider = this._sliderRow('Mine Speed', SC.enemySpeedMult, (val) => {
             SC.enemySpeedMult = val;
             SC.saveSettings();
         });

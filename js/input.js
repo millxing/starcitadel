@@ -23,11 +23,11 @@ SC.keyCodeToLabel = function(code) {
 
 // Default key bindings
 const defaultBindings = {
-    left:   { code: 'ArrowLeft',  label: 'LEFT ARROW' },
-    right:  { code: 'ArrowRight', label: 'RIGHT ARROW' },
-    thrust: { code: 'ArrowUp',    label: 'UP ARROW' },
-    fire:   { code: 'Space',      label: 'SPACE' },
-    pause:  { code: 'KeyP',       label: 'P' },
+    left:   { code: 'KeyA',   label: 'A' },
+    right:  { code: 'KeyD',   label: 'D' },
+    thrust: { code: 'KeyW',   label: 'W' },
+    fire:   { code: 'Enter',  label: 'ENTER' },
+    pause:  { code: 'KeyP',   label: 'P' },
 };
 
 // Load saved bindings or use defaults
