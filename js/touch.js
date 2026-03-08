@@ -26,7 +26,7 @@ SC.TouchControls = class TouchControls {
         const leftGroup = this._createGroup('left');
         Object.assign(leftGroup.style, {
             position: 'absolute',
-            bottom: 'max(30px, env(safe-area-inset-bottom, 0px) + 15px)',
+            bottom: 'max(80px, env(safe-area-inset-bottom, 0px) + 60px)',
             left: '20px',
             display: 'flex', gap: '15px',
         });
@@ -39,7 +39,7 @@ SC.TouchControls = class TouchControls {
         const rightGroup = this._createGroup('right');
         Object.assign(rightGroup.style, {
             position: 'absolute',
-            bottom: 'max(30px, env(safe-area-inset-bottom, 0px) + 15px)',
+            bottom: 'max(80px, env(safe-area-inset-bottom, 0px) + 60px)',
             right: '20px',
             display: 'flex', gap: '15px',
         });
@@ -48,12 +48,12 @@ SC.TouchControls = class TouchControls {
         rightGroup.appendChild(this.buttons.thrust);
         rightGroup.appendChild(this.buttons.fire);
 
-        // Pause button: top-right corner
+        // Pause button: top-left, below the HUD score row
         this.buttons.pause = this._createButton('\u2759\u2759', 'pause');
         Object.assign(this.buttons.pause.style, {
             position: 'absolute',
-            top: 'max(12px, env(safe-area-inset-top, 0px) + 8px)',
-            left: '12px',
+            top: 'max(58px, env(safe-area-inset-top, 0px) + 54px)',
+            left: '15px',
             width: '44px', height: '44px',
             fontSize: '14px',
             opacity: '0.5',

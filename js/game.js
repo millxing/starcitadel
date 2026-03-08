@@ -166,7 +166,7 @@ SC.Game = class Game {
         }
 
         if (this.state === 'paused') {
-            if (this.input.justPressed(SC.keyBindings.pause.code)) {
+            if (this.input.pause) {
                 this.resume();
             }
             this.input.update();
@@ -187,7 +187,7 @@ SC.Game = class Game {
         // --- Playing or levelTransition state ---
 
         // Check pause (only when playing, not during transition)
-        if (this.state === 'playing' && this.input.justPressed(SC.keyBindings.pause.code)) {
+        if (this.state === 'playing' && this.input.pause) {
             this.pause();
             this.input.update();
             return;
