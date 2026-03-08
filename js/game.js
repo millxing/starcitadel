@@ -4,6 +4,7 @@ SC.Game = class Game {
     constructor(canvas) {
         this.renderer = new SC.Renderer(canvas);
         this.input = new SC.Input();
+        this.touchControls = new SC.TouchControls(this.input);
         this.particles = new SC.ParticleSystem();
         this.hud = new SC.HUD();
         this.audio = new SC.Audio();
@@ -129,6 +130,7 @@ SC.Game = class Game {
         this.audio.stopThrust();
         this.audio.stopHum();
         this._wasThrustOn = false;
+        if (this.touchControls) this.touchControls.hide();
         this.menu.show();
     }
 
@@ -136,6 +138,7 @@ SC.Game = class Game {
         if (this.state !== 'paused') return;
         this.state = 'playing';
         this.menu.hide();
+        if (this.touchControls) this.touchControls.show();
         this.audio.startHum();
         // Clear input state so held keys from menu don't carry over
         this.input.keys = {};

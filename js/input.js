@@ -1,5 +1,7 @@
 window.SC = window.SC || {};
 
+SC.isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+
 // Key code to human-readable label
 SC.keyCodeToLabel = function(code) {
     const map = {
@@ -80,6 +82,14 @@ SC.Input = class Input {
         window.addEventListener('keyup', (e) => {
             this.keys[e.code] = false;
         });
+
+        // On touch devices, tapping the canvas acts as Space (for title/gameover)
+        if (SC.isTouchDevice) {
+            document.getElementById('gameCanvas').addEventListener('touchstart', () => {
+                this.keys['Space'] = true;
+                requestAnimationFrame(() => { this.keys['Space'] = false; });
+            }, { passive: false });
+        }
     }
 
     isDown(code) { return !!this.keys[code]; }
@@ -92,11 +102,11 @@ SC.Input = class Input {
         this.prev = { ...this.keys };
     }
 
-    get left() { return this.isDown(SC.keyBindings.left.code); }
-    get right() { return this.isDown(SC.keyBindings.right.code); }
-    get thrust() { return this.isDown(SC.keyBindings.thrust.code); }
-    get fire() { return this.isDown(SC.keyBindings.fire.code); }
-    get pause() { return this.justPressed(SC.keyBindings.pause.code); }
+    get left() { return this.isDown(SC.keyBindings.left.code) || this.isDown('_touch_left'); }
+    get right() { return this.isDown(SC.keyBindings.right.code) || this.isDown('_touch_right'); }
+    get thrust() { return this.isDown(SC.keyBindings.thrust.code) || this.isDown('_touch_thrust'); }
+    get fire() { return this.isDown(SC.keyBindings.fire.code) || this.isDown('_touch_fire'); }
+    get pause() { return this.justPressed(SC.keyBindings.pause.code) || this.justPressed('_touch_pause'); }
     get anyKey() {
         return Object.values(this.keys).some(v => v);
     }

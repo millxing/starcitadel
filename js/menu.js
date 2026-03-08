@@ -45,26 +45,28 @@ SC.Menu = class Menu {
         });
         panel.appendChild(title);
 
-        // Controls section
-        const ctrlHeader = this._sectionHeader('CONTROLS');
-        panel.appendChild(ctrlHeader);
-
+        // Controls section (hidden on touch devices — no keyboard to remap)
         this.bindingButtons = {};
-        const actions = [
-            { key: 'left', label: 'Left' },
-            { key: 'right', label: 'Right' },
-            { key: 'thrust', label: 'Thrust' },
-            { key: 'fire', label: 'Fire' },
-            { key: 'pause', label: 'Pause' },
-        ];
+        if (!SC.isTouchDevice) {
+            const ctrlHeader = this._sectionHeader('CONTROLS');
+            panel.appendChild(ctrlHeader);
 
-        for (const action of actions) {
-            const row = this._bindingRow(action.key, action.label);
-            panel.appendChild(row);
+            const actions = [
+                { key: 'left', label: 'Left' },
+                { key: 'right', label: 'Right' },
+                { key: 'thrust', label: 'Thrust' },
+                { key: 'fire', label: 'Fire' },
+                { key: 'pause', label: 'Pause' },
+            ];
+
+            for (const action of actions) {
+                const row = this._bindingRow(action.key, action.label);
+                panel.appendChild(row);
+            }
+
+            // Spacer
+            panel.appendChild(this._spacer(20));
         }
-
-        // Spacer
-        panel.appendChild(this._spacer(20));
 
         // Settings section
         const settingsHeader = this._sectionHeader('SETTINGS');
@@ -109,7 +111,7 @@ SC.Menu = class Menu {
 
         // Resume button
         const resumeBtn = document.createElement('button');
-        resumeBtn.textContent = 'RESUME (P)';
+        resumeBtn.textContent = SC.isTouchDevice ? 'RESUME' : 'RESUME (P)';
         Object.assign(resumeBtn.style, {
             display: 'block', margin: '0 auto', padding: '10px 32px',
             background: 'transparent', border: '2px solid #00ffff',

@@ -9,7 +9,8 @@
       "WebFetch(domain:forums.arcade-museum.com)",
       "Bash(python3 -c \":*)",
       "Bash(pip3 install pypdf)",
-      "mcp__Claude_Preview__preview_start"
+      "mcp__Claude_Preview__preview_start",
+      "Bash(wc -l /Users/robschoen/Dropbox/CC/starcitadel/js/*.js)"
     ]
   }
 }
