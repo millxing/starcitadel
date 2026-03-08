@@ -11,6 +11,7 @@ SC.TouchControls = class TouchControls {
 
         this._build();
         this._attachEvents();
+        this._preventIOSZoom();
     }
 
     _build() {
@@ -68,6 +69,7 @@ SC.TouchControls = class TouchControls {
     _createGroup() {
         const g = document.createElement('div');
         g.style.pointerEvents = 'auto';
+        g.style.touchAction = 'none';
         return g;
     }
 
@@ -98,6 +100,7 @@ SC.TouchControls = class TouchControls {
             fontSize: '20px',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             pointerEvents: 'auto',
+            touchAction: 'none',
             boxShadow: '0 0 8px ' + glowColor + ', inset 0 0 8px rgba(0, 255, 255, 0.05)',
             textShadow: '0 0 6px ' + glowColor,
             WebkitTapHighlightColor: 'transparent',
@@ -174,6 +177,23 @@ SC.TouchControls = class TouchControls {
             btn.style.background = 'rgba(0, 8, 20, 0.3)';
             btn.style.boxShadow = '0 0 8px rgba(0, 255, 255, 0.15), inset 0 0 8px rgba(0, 255, 255, 0.05)';
         }
+    }
+
+    _preventIOSZoom() {
+        // Block iOS proprietary pinch/zoom gesture events
+        document.addEventListener('gesturestart', (e) => e.preventDefault(), { passive: false });
+        document.addEventListener('gesturechange', (e) => e.preventDefault(), { passive: false });
+        document.addEventListener('gestureend', (e) => e.preventDefault(), { passive: false });
+
+        // Also block double-tap zoom on the whole document
+        let lastTap = 0;
+        document.addEventListener('touchend', (e) => {
+            const now = Date.now();
+            if (now - lastTap < 300) {
+                e.preventDefault();
+            }
+            lastTap = now;
+        }, { passive: false });
     }
 
     show() {
