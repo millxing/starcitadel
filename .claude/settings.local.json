@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:en.wikipedia.org)",
+      "WebFetch(domain:www.youtube.com)",
+      "WebFetch(domain:bitvint.com)",
+      "WebFetch(domain:80sheaven.com)",
+      "WebFetch(domain:www.arcade-history.com)",
+      "WebFetch(domain:forums.arcade-museum.com)",
+      "Bash(python3 -c \":*)",
+      "Bash(pip3 install pypdf)",
+      "mcp__Claude_Preview__preview_start"
+    ]
+  }
+}
