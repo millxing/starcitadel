@@ -71,10 +71,12 @@ SC.Game = class Game {
         this.mines = [];
         this.mineRespawnTimers = [];
 
-        // Spawn initial mines with staggered delays, one per ring
+        // Spawn initial mines: one per ring, extras on outer
         const mineCount = this.getMineCount();
         for (let i = 0; i < mineCount; i++) {
-            this.mineRespawnTimers.push({ timer: 1 + i * 0.8, ringIndex: i % 3 });
+            // First 3: inner(2), middle(1), outer(0); extras: outer(0)
+            const ringIdx = i < 3 ? (2 - i) : 0;
+            this.mineRespawnTimers.push({ timer: 1 + i * 0.8, ringIndex: ringIdx });
         }
     }
 
@@ -96,12 +98,13 @@ SC.Game = class Game {
         // Keep player where they are — no teleport
         // Keep existing bullets and cannon bullets
 
-        // Clear old mine respawn timers, schedule new mines on rings
+        // Clear old mine respawn timers, schedule new mines one per ring, extras outer
         this.mineRespawnTimers = [];
         const currentMines = this.mines.length;
         const needed = Math.max(0, this.getMineCount() - currentMines);
         for (let i = 0; i < needed; i++) {
-            this.mineRespawnTimers.push({ timer: 2 + i * 0.8, ringIndex: i % 3 });
+            const ringIdx = i < 3 ? (2 - i) : 0;
+            this.mineRespawnTimers.push({ timer: 2 + i * 0.8, ringIndex: ringIdx });
         }
     }
 
@@ -374,7 +377,7 @@ SC.Game = class Game {
 
         // Mines vs player
         for (const mine of this.mines) {
-            if (!mine.alive || mine.spawnTimer > 0) continue;
+            if (!mine.alive || mine.fadeIn > 0) continue;
             if (playerPos.distTo(mine.pos) < playerR + C.MINE_RADIUS) {
                 this.playerDeath();
                 return;
@@ -417,14 +420,14 @@ SC.Game = class Game {
         for (const bullet of this.bullets) {
             if (!bullet.alive) continue;
             for (const mine of this.mines) {
-                if (!mine.alive || mine.spawnTimer > 0) continue;
+                if (!mine.alive || mine.fadeIn > 0) continue;
                 if (bullet.pos.distTo(mine.pos) < C.BULLET_RADIUS + C.MINE_RADIUS + 2) {
                     bullet.alive = false;
                     mine.alive = false;
                     this.particles.emit(mine.pos.x, mine.pos.y, 6, '#ffffff', 60, 0.4, 1.5);
                     this.audio.playMineDestroyed();
-                    // Schedule respawn on a random ring
-                    this.mineRespawnTimers.push({ timer: SC.CONST.MINE_SPAWN_DELAY, ringIndex: Math.floor(Math.random() * 3) });
+                    // Schedule respawn on inner ring
+                    this.mineRespawnTimers.push({ timer: SC.CONST.MINE_SPAWN_DELAY });
                     break;
                 }
             }

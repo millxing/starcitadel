@@ -1,30 +1,36 @@
 window.SC = window.SC || {};
 
 SC.Mine = class Mine {
-    constructor(cx, cy, speed, ringSystem, ringIndex) {
+    constructor(cx, cy, speed, ringSystem, startRingIndex) {
         this.speed = speed;
         this.alive = true;
-        this.spawnTimer = 1.0;
         this.pulsePhase = Math.random() * Math.PI * 2;
 
-        // Wander: gentle oscillation so mines don't cluster
+        // Wander: gentle oscillation so mines don't cluster when free
         this.wanderPhase = Math.random() * Math.PI * 2;
         this.wanderFreq = 0.5 + Math.random() * 1.0;
 
-        // Attach to a ring segment during spawn
-        if (ringSystem && ringSystem.rings[ringIndex] && ringSystem.rings[ringIndex].radius > 10) {
-            this.attachedRing = ringSystem.rings[ringIndex];
-            this.attachAngle = Math.random() * Math.PI * 2;
-            this.ringCx = cx;
-            this.ringCy = cy;
+        // Ring-riding state
+        this.ringCx = cx;
+        this.ringCy = cy;
+        this.attached = false;
+        this.attachedRing = null;
+        this.attachAngle = Math.random() * Math.PI * 2;
+        this.accumulatedRotation = 0;
+        this.fadeIn = 1.0; // brief fade-in on spawn
+        this.vel = new SC.Vec2(0, 0);
+
+        // Attach to specified ring (default: innermost = 2)
+        const ri = (startRingIndex != null) ? startRingIndex : 2;
+        if (ringSystem && ringSystem.rings[ri] && ringSystem.rings[ri].radius > 10) {
+            this.attached = true;
+            this.attachedRing = ringSystem.rings[ri];
             this.pos = new SC.Vec2(
                 cx + Math.cos(this.attachAngle) * this.attachedRing.radius,
                 cy + Math.sin(this.attachAngle) * this.attachedRing.radius
             );
-            this.vel = new SC.Vec2(0, 0);
         } else {
             // Fallback: spawn from center
-            this.attachedRing = null;
             this.pos = new SC.Vec2(cx, cy);
             this.vel = new SC.Vec2(
                 (Math.random() - 0.5) * speed,
@@ -33,36 +39,67 @@ SC.Mine = class Mine {
         }
     }
 
+    detach() {
+        this.attached = false;
+        this.attachedRing = null;
+        const outDir = new SC.Vec2(
+            Math.cos(this.attachAngle),
+            Math.sin(this.attachAngle)
+        );
+        this.vel = outDir.scale(this.speed);
+    }
+
     update(dt, playerPos, w, h, ringSystem) {
         this.pulsePhase += dt * 8;
+        if (this.fadeIn > 0) this.fadeIn -= dt;
 
-        if (this.spawnTimer > 0) {
-            this.spawnTimer -= dt;
+        // --- Ring-riding phase ---
+        if (this.attached && ringSystem) {
+            // Check if our ring still exists and isn't collapsing/destroyed
+            const idx = ringSystem.rings.indexOf(this.attachedRing);
+            if (idx < 0 || this.attachedRing.collapsing ||
+                this.attachedRing.isFullyDestroyed() || this.attachedRing.radius < 10) {
+                this.detach();
+                // Fall through to free-flying below
+            } else {
+                // Check if the segment under this mine was destroyed
+                const segCount = SC.CONST.RING_SEGMENT_COUNT;
+                const segAngle = Math.PI * 2 / segCount;
+                const localAngle = SC.normalizeAngle(this.attachAngle - this.attachedRing.rotationOffset);
+                const segIndex = Math.floor(localAngle / segAngle) % segCount;
+                if (this.attachedRing.segments[segIndex].health <= 0) {
+                    this.detach();
+                    // Fall through to free-flying below
+                } else {
+                    // Ride the ring rotation
+                    const rotDelta = this.attachedRing.rotationSpeed * (SC.enemySpeedMult || 1) * dt;
+                    this.attachAngle += rotDelta;
+                    this.accumulatedRotation += Math.abs(rotDelta);
 
-            if (this.attachedRing) {
-                // Ride the ring rotation
-                this.attachAngle += this.attachedRing.rotationSpeed * (SC.enemySpeedMult || 1) * dt;
-                this.pos = new SC.Vec2(
-                    this.ringCx + Math.cos(this.attachAngle) * this.attachedRing.radius,
-                    this.ringCy + Math.sin(this.attachAngle) * this.attachedRing.radius
-                );
-
-                if (this.spawnTimer <= 0) {
-                    // Detach: launch outward from ring
-                    const outDir = new SC.Vec2(
-                        Math.cos(this.attachAngle),
-                        Math.sin(this.attachAngle)
+                    this.ringCx = ringSystem.cx;
+                    this.ringCy = ringSystem.cy;
+                    this.pos = new SC.Vec2(
+                        this.ringCx + Math.cos(this.attachAngle) * this.attachedRing.radius,
+                        this.ringCy + Math.sin(this.attachAngle) * this.attachedRing.radius
                     );
-                    this.vel = outDir.scale(this.speed);
-                    this.attachedRing = null;
-                }
-                return;
-            }
 
-            // Fallback drift from center
-            this.pos = this.pos.add(this.vel.scale(dt));
-            return;
+                    // After quarter rotation, jump outward or release
+                    if (this.accumulatedRotation >= Math.PI / 2) {
+                        if (idx > 0) {
+                            // Jump to next ring outward
+                            this.attachedRing = ringSystem.rings[idx - 1];
+                            this.accumulatedRotation = 0;
+                        } else {
+                            // On outer ring — release!
+                            this.detach();
+                        }
+                    }
+                    return;
+                }
+            }
         }
+
+        // --- Free-flying homing behavior ---
 
         // Wander: gentle sine oscillation so mines spread slightly
         this.wanderPhase += this.wanderFreq * dt;
@@ -121,10 +158,8 @@ SC.Mine = class Mine {
         const C = SC.CONST;
         const pulse = 0.7 + 0.3 * Math.sin(this.pulsePhase);
 
-        if (this.spawnTimer > 0) {
-            // Dim during spawn
-            const alpha = 1 - this.spawnTimer;
-            renderer.ctx.globalAlpha = alpha;
+        if (this.fadeIn > 0) {
+            renderer.ctx.globalAlpha = 1 - this.fadeIn;
         }
 
         // Draw as small diamond shape
