@@ -277,7 +277,7 @@ SC.Game = class Game {
 
         // Mines
         for (const m of this.mines) {
-            if (m.alive) m.update(dt, this.player.pos, w, h);
+            if (m.alive) m.update(dt, this.player.pos, w, h, this.ringSystem);
         }
         this.mines = this.mines.filter(m => m.alive);
 

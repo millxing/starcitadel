@@ -33,7 +33,7 @@ SC.Mine = class Mine {
         }
     }
 
-    update(dt, playerPos, w, h) {
+    update(dt, playerPos, w, h, ringSystem) {
         this.pulsePhase += dt * 8;
 
         if (this.spawnTimer > 0) {
@@ -78,6 +78,35 @@ SC.Mine = class Mine {
         const effectiveSpeed = this.speed * (SC.enemySpeedMult || 1);
         this.vel = blended.scale(effectiveSpeed);
         this.pos = this.pos.add(this.vel.scale(dt));
+
+        // Collide with ring segments — mines must go around
+        if (ringSystem) {
+            const col = ringSystem.checkShipCollision(this.pos, SC.CONST.MINE_RADIUS);
+            if (col.hit) {
+                // Push mine back outside the ring and deflect velocity tangentially
+                const nx = col.normalX;
+                const ny = col.normalY;
+                const dx = this.pos.x - ringSystem.cx;
+                const dy = this.pos.y - ringSystem.cy;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                const outside = dist > col.radius;
+                const pushDist = SC.CONST.MINE_RADIUS + SC.CONST.RING_THICKNESS / 2 + 1;
+                if (outside) {
+                    this.pos = new SC.Vec2(
+                        ringSystem.cx + nx * (col.radius + pushDist),
+                        ringSystem.cy + ny * (col.radius + pushDist)
+                    );
+                } else {
+                    this.pos = new SC.Vec2(
+                        ringSystem.cx + nx * (col.radius - pushDist),
+                        ringSystem.cy + ny * (col.radius - pushDist)
+                    );
+                }
+                // Deflect velocity to be tangential to ring
+                const dot = this.vel.x * nx + this.vel.y * ny;
+                this.vel = new SC.Vec2(this.vel.x - dot * nx, this.vel.y - dot * ny);
+            }
+        }
 
         // Wrap
         if (this.pos.x < 0) this.pos.x += w;

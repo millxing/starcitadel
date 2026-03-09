@@ -419,42 +419,73 @@ SC.Audio = class Audio {
     }
 
     // ===== ONE-SHOT: Cannon Fire =====
-    // Menacing sizzle/hiss
+    // Loud, scary sizzle
     playCannonFire() {
         if (!this._ensure()) return;
         const ctx = this.ctx;
         const now = ctx.currentTime;
 
-        // Hissing noise
-        const noise = ctx.createBufferSource();
-        noise.buffer = this._noiseBuffer(0.4);
+        // Loud crackling sizzle — wide-band noise
+        const sizzle = ctx.createBufferSource();
+        sizzle.buffer = this._noiseBuffer(0.8);
         const bpf = ctx.createBiquadFilter();
         bpf.type = 'bandpass';
-        bpf.frequency.value = 2000;
-        bpf.Q.value = 2;
-        const noiseGain = ctx.createGain();
-        noiseGain.gain.setValueAtTime(0.15, now);
-        noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+        bpf.frequency.setValueAtTime(3500, now);
+        bpf.frequency.exponentialRampToValueAtTime(1200, now + 0.6);
+        bpf.Q.value = 1;
+        const sizzleGain = ctx.createGain();
+        sizzleGain.gain.setValueAtTime(0.45, now);
+        sizzleGain.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
 
-        noise.connect(bpf);
-        bpf.connect(noiseGain);
-        noiseGain.connect(this.masterGain);
-        noise.start(now);
-        noise.stop(now + 0.3);
+        sizzle.connect(bpf);
+        bpf.connect(sizzleGain);
+        sizzleGain.connect(this.masterGain);
+        sizzle.start(now);
+        sizzle.stop(now + 0.7);
 
-        // Low growl tone
-        const osc = ctx.createOscillator();
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(120, now);
-        osc.frequency.exponentialRampToValueAtTime(60, now + 0.25);
-        const oscGain = ctx.createGain();
-        oscGain.gain.setValueAtTime(0.12, now);
-        oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+        // High sizzle layer for extra crackle
+        const hiSizzle = ctx.createBufferSource();
+        hiSizzle.buffer = this._noiseBuffer(0.5);
+        const hpf = ctx.createBiquadFilter();
+        hpf.type = 'highpass';
+        hpf.frequency.value = 5000;
+        const hiGain = ctx.createGain();
+        hiGain.gain.setValueAtTime(0.3, now);
+        hiGain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
 
-        osc.connect(oscGain);
-        oscGain.connect(this.masterGain);
-        osc.start(now);
-        osc.stop(now + 0.25);
+        hiSizzle.connect(hpf);
+        hpf.connect(hiGain);
+        hiGain.connect(this.masterGain);
+        hiSizzle.start(now);
+        hiSizzle.stop(now + 0.4);
+
+        // Deep menacing thump
+        const thump = ctx.createOscillator();
+        thump.type = 'sawtooth';
+        thump.frequency.setValueAtTime(80, now);
+        thump.frequency.exponentialRampToValueAtTime(30, now + 0.5);
+        const thumpGain = ctx.createGain();
+        thumpGain.gain.setValueAtTime(0.35, now);
+        thumpGain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+
+        thump.connect(thumpGain);
+        thumpGain.connect(this.masterGain);
+        thump.start(now);
+        thump.stop(now + 0.5);
+
+        // Sub-bass impact
+        const sub = ctx.createOscillator();
+        sub.type = 'sine';
+        sub.frequency.setValueAtTime(50, now);
+        sub.frequency.exponentialRampToValueAtTime(20, now + 0.3);
+        const subGain = ctx.createGain();
+        subGain.gain.setValueAtTime(0.4, now);
+        subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+
+        sub.connect(subGain);
+        subGain.connect(this.masterGain);
+        sub.start(now);
+        sub.stop(now + 0.3);
     }
 
     // ===== ONE-SHOT: Level Complete =====
