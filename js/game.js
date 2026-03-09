@@ -165,6 +165,40 @@ SC.Game = class Game {
                 this.state = 'title';
                 this.audio.stopHum();
             }
+
+            // Keep the game world alive — rings spin, cannon tracks, mines roam
+            const r = this.renderer;
+            const w = r.w, h = r.h;
+            if (this.ringSystem) {
+                this.ringSystem.setCenter(r.cx, r.cy);
+                this.ringSystem.update(dt);
+            }
+            if (this.cannon && this.cannon.alive) {
+                // Cannon keeps tracking last known player position
+                this.cannon.update(dt, this.player.pos, this.ringSystem);
+            }
+            for (const m of this.mines) {
+                if (m.alive) m.update(dt, this.player.pos, w, h, this.ringSystem);
+            }
+            // Cannon bullets keep flying
+            for (const cb of this.cannonBullets) cb.update(dt, w, h);
+            this.cannonBullets = this.cannonBullets.filter(cb => cb.alive);
+            // Cannon can still fire during game over
+            if (this.cannon && this.cannon.alive) {
+                const cb = this.cannon.tryFire(this.ringSystem, this.player.pos);
+                if (cb) {
+                    this.cannonBullets.push(cb);
+                    this.audio.playCannonFire();
+                }
+            }
+            // Cannon bullets blocked by rings
+            for (const cb of this.cannonBullets) {
+                if (!cb.alive) continue;
+                if (this.ringSystem.checkCannonBulletCollision(cb)) {
+                    cb.alive = false;
+                }
+            }
+            this.particles.update(dt);
             this.input.update();
             return;
         }
@@ -407,7 +441,7 @@ SC.Game = class Game {
 
         if (this.lives <= 0) {
             this.state = 'gameover';
-            this.audio.stopHum();
+            // Keep hum going — castle stays alive during game over
             if (this.score > this.highScore) {
                 this.highScore = this.score;
                 localStorage.setItem('starcitadel_high', this.highScore.toString());
@@ -504,8 +538,13 @@ SC.Game = class Game {
         }
 
         if (this.state === 'gameover') {
-            this.hud.drawGameOver(r, this.score, this.highScore);
+            // Draw the full game world (no player)
+            if (this.ringSystem) this.ringSystem.draw(r);
+            if (this.cannon && this.cannon.alive) this.cannon.draw(r);
+            for (const cb of this.cannonBullets) cb.draw(r);
+            for (const m of this.mines) m.draw(r);
             this.particles.drawParticles(r);
+            this.hud.drawGameOver(r, this.score, this.highScore);
             return;
         }
 

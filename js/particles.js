@@ -39,13 +39,26 @@ SC.ParticleSystem = class ParticleSystem {
 
     initStars(w, h) {
         this.stars = [];
-        for (let i = 0; i < 120; i++) {
+        // Regular dim stars
+        for (let i = 0; i < 160; i++) {
             this.stars.push({
                 x: Math.random() * w,
                 y: Math.random() * h,
-                brightness: 0.2 + Math.random() * 0.5,
+                brightness: 0.4 + Math.random() * 0.4,
                 phase: Math.random() * Math.PI * 2,
-                size: 0.5 + Math.random() * 1.2
+                size: 0.8 + Math.random() * 1.2,
+                bright: false
+            });
+        }
+        // Bright feature stars — larger, brighter, with glow
+        for (let i = 0; i < 25; i++) {
+            this.stars.push({
+                x: Math.random() * w,
+                y: Math.random() * h,
+                brightness: 0.7 + Math.random() * 0.3,
+                phase: Math.random() * Math.PI * 2,
+                size: 1.5 + Math.random() * 1.0,
+                bright: true
             });
         }
     }
@@ -94,9 +107,25 @@ SC.ParticleSystem = class ParticleSystem {
         for (const star of this.stars) {
             const flicker = 0.7 + 0.3 * Math.sin(time * 1.5 + star.phase);
             const alpha = star.brightness * flicker;
-            ctx.globalAlpha = alpha;
-            ctx.fillStyle = '#aabbdd';
-            ctx.fillRect(star.x, star.y, star.size, star.size);
+
+            if (star.bright) {
+                // Bright stars get a soft glow halo
+                const glow = star.size * 3;
+                ctx.globalAlpha = alpha * 0.2;
+                ctx.fillStyle = '#ccddff';
+                ctx.beginPath();
+                ctx.arc(star.x, star.y, glow, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Core
+                ctx.globalAlpha = alpha;
+                ctx.fillStyle = '#ddeeff';
+                ctx.fillRect(star.x - star.size / 2, star.y - star.size / 2, star.size, star.size);
+            } else {
+                ctx.globalAlpha = alpha;
+                ctx.fillStyle = '#bbccee';
+                ctx.fillRect(star.x, star.y, star.size, star.size);
+            }
         }
         ctx.globalAlpha = 1;
     }

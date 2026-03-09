@@ -214,6 +214,8 @@ SC.RingSystem = class RingSystem {
 
         for (let r = 0; r < 3; r++) {
             const ring = this.rings[r];
+            // Skip collapsing or still-growing rings
+            if (ring.collapsing || ring.radius < 40) continue;
             if (Math.abs(dist - ring.radius) > threshold) continue;
 
             for (let i = 0; i < ring.segments.length; i++) {
@@ -259,6 +261,8 @@ SC.RingSystem = class RingSystem {
 
         for (let r = 0; r < 3; r++) {
             const ring = this.rings[r];
+            // Skip collapsing or still-growing rings
+            if (ring.collapsing || ring.radius < 40) continue;
             if (Math.abs(dist - ring.radius) > threshold) continue;
 
             for (let i = 0; i < ring.segments.length; i++) {

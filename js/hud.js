@@ -76,15 +76,18 @@ SC.HUD = class HUD {
         const cx = renderer.w / 2;
         const cy = renderer.h / 2;
 
-        renderer.drawText('GAME OVER', cx, cy - 60, 40, '#ff3333', 'center', 15);
-        renderer.drawText('SCORE: ' + score, cx, cy + 10, 24, '#ffffff', 'center', 8);
-        if (highScore > 0) {
-            renderer.drawText('HIGH SCORE: ' + highScore, cx, cy + 50, 20, '#ffff33', 'center', 6);
-        }
+        // Above the castle
+        renderer.drawText('GAME OVER', cx, cy - 260, 40, '#ff3333', 'center', 15);
         if (SC.isTouchDevice) {
-            renderer.drawText('TAP TO CONTINUE', cx, cy + 100, 18, '#4488ff', 'center', 6);
+            renderer.drawText('TAP TO CONTINUE', cx, cy - 218, 18, '#4488ff', 'center', 6);
         } else {
-            renderer.drawText('PRESS ' + SC.keyBindings.fire.label + ' TO RESTART', cx, cy + 100, 18, '#4488ff', 'center', 6);
+            renderer.drawText('PRESS ' + SC.keyBindings.fire.label + ' TO RESTART', cx, cy - 218, 18, '#4488ff', 'center', 6);
+        }
+
+        // Below the castle
+        renderer.drawText('SCORE: ' + score, cx, cy + 240, 24, '#ffffff', 'center', 8);
+        if (highScore > 0) {
+            renderer.drawText('HIGH SCORE: ' + highScore, cx, cy + 275, 20, '#ffff33', 'center', 6);
         }
     }
 };
