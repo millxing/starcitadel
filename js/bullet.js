@@ -32,11 +32,13 @@ SC.CannonBullet = class CannonBullet {
         this.vel = new SC.Vec2(vx, vy);
         this.alive = true;
         this.lifetime = 3.0;
+        this.phase = Math.random() * Math.PI * 2;
     }
 
     update(dt, w, h) {
         this.pos = this.pos.add(this.vel.scale(dt));
         this.lifetime -= dt;
+        this.phase += dt * 12; // spin/pulse speed
         if (this.lifetime <= 0) this.alive = false;
 
         // Despawn off-screen (no wrap for cannon bullets)
@@ -48,6 +50,21 @@ SC.CannonBullet = class CannonBullet {
 
     draw(renderer) {
         if (!this.alive) return;
-        renderer.drawFilledCircle(this.pos.x, this.pos.y, SC.CONST.CANNON_BULLET_RADIUS, SC.CONST.COLOR_CANNON_BULLET, 14);
+        const C = SC.CONST;
+        const r = C.CANNON_BULLET_RADIUS;
+        const pulse = 0.7 + 0.3 * Math.sin(this.phase * 3);
+        const glow = 18 * pulse;
+        const x = this.pos.x;
+        const y = this.pos.y;
+        const color = C.COLOR_CANNON_BULLET;
+
+        // Pulsing asterisk — 3 lines through center, slowly rotating
+        const spokes = 3;
+        for (let i = 0; i < spokes; i++) {
+            const angle = this.phase + (i * Math.PI / spokes);
+            const dx = Math.cos(angle) * r * pulse;
+            const dy = Math.sin(angle) * r * pulse;
+            renderer.drawLine(x - dx, y - dy, x + dx, y + dy, color, 2.5, glow);
+        }
     }
 };
