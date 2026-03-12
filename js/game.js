@@ -513,10 +513,12 @@ SC.Game = class Game {
         }
 
         // Big explosion particles from center
-        this.particles.emit(cx, cy, 80, '#ffff00', 250, 1.5, 3);
-        this.particles.emit(cx, cy, 50, '#ff8800', 200, 1.2, 2.5);
-        this.particles.emit(cx, cy, 40, '#ffffff', 300, 1.0, 2);
-        this.particles.emitRing(cx, cy, 40, '#ff4400', 220, 1.0);
+        this.particles.emit(cx, cy, 150, '#ffff00', 350, 2.0, 4);
+        this.particles.emit(cx, cy, 100, '#ff8800', 300, 1.8, 3.5);
+        this.particles.emit(cx, cy, 80, '#ffffff', 400, 1.5, 3);
+        this.particles.emit(cx, cy, 60, '#ff4400', 250, 1.6, 2.5);
+        this.particles.emitRing(cx, cy, 60, '#ff4400', 320, 1.2);
+        this.particles.emitRing(cx, cy, 40, '#ffff00', 200, 0.8);
 
         this.audio.playCannonDestroyed();
         this.audio.playLevelComplete();

@@ -30,6 +30,8 @@ SC.Menu = class Menu {
             padding: '30px 40px',
             minWidth: '380px',
             maxWidth: '460px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
             fontFamily: '"Courier New", monospace',
             color: '#00ffff',
             boxShadow: '0 0 30px rgba(0, 255, 255, 0.15), inset 0 0 30px rgba(0, 255, 255, 0.05)',
@@ -89,6 +91,45 @@ SC.Menu = class Menu {
             SC.saveSettings();
         }, 0.25, 1.5, 0.25);
         panel.appendChild(this.rotateSlider.row);
+
+        // Spacer
+        panel.appendChild(this._spacer(12));
+
+        // Background section
+        const bgHeader = this._sectionHeader('BACKGROUND');
+        panel.appendChild(bgHeader);
+
+        const regen = () => { if (SC.game) SC.game.particles.regenerateBackground(); };
+
+        this.nebulaToggle = this._toggleRow('Nebulae', SC.nebulaeEnabled, (on) => {
+            SC.nebulaeEnabled = on; SC.saveSettings(); regen();
+        });
+        panel.appendChild(this.nebulaToggle.row);
+
+        this.galaxyToggle = this._toggleRow('Galaxies', SC.galaxiesEnabled, (on) => {
+            SC.galaxiesEnabled = on; SC.saveSettings(); regen();
+        });
+        panel.appendChild(this.galaxyToggle.row);
+
+        this.dustToggle = this._toggleRow('Dust Lanes', SC.dustLanesEnabled, (on) => {
+            SC.dustLanesEnabled = on; SC.saveSettings(); regen();
+        });
+        panel.appendChild(this.dustToggle.row);
+
+        this.clusterToggle = this._toggleRow('Star Clusters', SC.starClustersEnabled, (on) => {
+            SC.starClustersEnabled = on; SC.saveSettings();
+        });
+        panel.appendChild(this.clusterToggle.row);
+
+        this.shootingToggle = this._toggleRow('Shooting Stars', SC.shootingStarsEnabled, (on) => {
+            SC.shootingStarsEnabled = on; SC.saveSettings();
+        });
+        panel.appendChild(this.shootingToggle.row);
+
+        this.pulsarToggle = this._toggleRow('Pulsars', SC.pulsarsEnabled, (on) => {
+            SC.pulsarsEnabled = on; SC.saveSettings();
+        });
+        panel.appendChild(this.pulsarToggle.row);
 
         // Spacer
         panel.appendChild(this._spacer(12));
@@ -242,6 +283,43 @@ SC.Menu = class Menu {
         return { row, slider, valDisplay };
     }
 
+    _toggleRow(label, initialValue, onChange) {
+        const row = document.createElement('div');
+        Object.assign(row.style, {
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            marginBottom: '8px', padding: '4px 0',
+        });
+
+        const lbl = document.createElement('span');
+        lbl.textContent = label;
+        Object.assign(lbl.style, { fontSize: '15px', color: '#aaddff', minWidth: '110px' });
+
+        const btn = document.createElement('button');
+        let on = initialValue;
+        const updateBtn = () => {
+            btn.textContent = on ? 'ON' : 'OFF';
+            btn.style.color = on ? '#00ff88' : '#ff4466';
+            btn.style.borderColor = on ? '#00ff88' : '#ff4466';
+        };
+        Object.assign(btn.style, {
+            background: 'rgba(0, 255, 255, 0.08)', border: '1px solid #336688',
+            borderRadius: '3px', fontSize: '14px',
+            fontFamily: '"Courier New", monospace', cursor: 'pointer',
+            padding: '4px 14px', minWidth: '60px', textAlign: 'center',
+            transition: 'all 0.15s',
+        });
+        updateBtn();
+        btn.addEventListener('click', () => {
+            on = !on;
+            updateBtn();
+            onChange(on);
+        });
+
+        row.appendChild(lbl);
+        row.appendChild(btn);
+        return { row, btn, getValue: () => on, setValue: (v) => { on = v; updateBtn(); } };
+    }
+
     _startListening(actionKey) {
         // Cancel any previous listening
         this._stopListening();
@@ -309,6 +387,12 @@ SC.Menu = class Menu {
         this.shipSlider.valDisplay.textContent = SC.shipSpeedMult.toFixed(2) + 'x';
         this.rotateSlider.slider.value = SC.rotateSpeedMult.toString();
         this.rotateSlider.valDisplay.textContent = SC.rotateSpeedMult.toFixed(2) + 'x';
+        this.nebulaToggle.setValue(SC.nebulaeEnabled);
+        this.galaxyToggle.setValue(SC.galaxiesEnabled);
+        this.dustToggle.setValue(SC.dustLanesEnabled);
+        this.clusterToggle.setValue(SC.starClustersEnabled);
+        this.shootingToggle.setValue(SC.shootingStarsEnabled);
+        this.pulsarToggle.setValue(SC.pulsarsEnabled);
         const vol = parseFloat(localStorage.getItem('starcitadel_volume') || '0.4');
         this.volumeSlider.slider.value = vol.toString();
         this.volumeSlider.valDisplay.textContent = vol.toFixed(2) + 'x';

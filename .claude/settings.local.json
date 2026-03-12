@@ -10,7 +10,9 @@
       "Bash(python3 -c \":*)",
       "Bash(pip3 install pypdf)",
       "mcp__Claude_Preview__preview_start",
-      "Bash(wc -l /Users/robschoen/Dropbox/CC/starcitadel/js/*.js)"
+      "Bash(wc -l /Users/robschoen/Dropbox/CC/starcitadel/js/*.js)",
+      "WebFetch(domain:esahubble.org)",
+      "Bash(grep -r \"fillRect\\\\|drawStars\\\\|stars\\\\|background\" /Users/robschoen/Dropbox/CC/starcitadel/js/*.js)"
     ]
   }
 }

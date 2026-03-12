@@ -77,6 +77,12 @@ SC.CONST = {
 SC.shipSpeedMult = 1.25;
 SC.enemySpeedMult = 0.75;
 SC.rotateSpeedMult = 0.5;
+SC.nebulaeEnabled = true;
+SC.galaxiesEnabled = true;
+SC.shootingStarsEnabled = false;
+SC.starClustersEnabled = true;
+SC.dustLanesEnabled = true;
+SC.pulsarsEnabled = false;
 
 (function() {
     try {
@@ -86,6 +92,12 @@ SC.rotateSpeedMult = 0.5;
             if (typeof s.shipSpeedMult === 'number') SC.shipSpeedMult = s.shipSpeedMult;
             if (typeof s.enemySpeedMult === 'number') SC.enemySpeedMult = s.enemySpeedMult;
             if (typeof s.rotateSpeedMult === 'number') SC.rotateSpeedMult = s.rotateSpeedMult;
+            if (typeof s.nebulaeEnabled === 'boolean') SC.nebulaeEnabled = s.nebulaeEnabled;
+            if (typeof s.galaxiesEnabled === 'boolean') SC.galaxiesEnabled = s.galaxiesEnabled;
+            if (typeof s.shootingStarsEnabled === 'boolean') SC.shootingStarsEnabled = s.shootingStarsEnabled;
+            if (typeof s.starClustersEnabled === 'boolean') SC.starClustersEnabled = s.starClustersEnabled;
+            if (typeof s.dustLanesEnabled === 'boolean') SC.dustLanesEnabled = s.dustLanesEnabled;
+            if (typeof s.pulsarsEnabled === 'boolean') SC.pulsarsEnabled = s.pulsarsEnabled;
         }
     } catch (e) { /* ignore */ }
 })();
@@ -95,5 +107,11 @@ SC.saveSettings = function() {
         shipSpeedMult: SC.shipSpeedMult,
         enemySpeedMult: SC.enemySpeedMult,
         rotateSpeedMult: SC.rotateSpeedMult,
+        nebulaeEnabled: SC.nebulaeEnabled,
+        galaxiesEnabled: SC.galaxiesEnabled,
+        shootingStarsEnabled: SC.shootingStarsEnabled,
+        starClustersEnabled: SC.starClustersEnabled,
+        dustLanesEnabled: SC.dustLanesEnabled,
+        pulsarsEnabled: SC.pulsarsEnabled,
     }));
 };
