@@ -134,6 +134,7 @@ SC.Game = class Game {
     pause() {
         if (this.state !== 'playing') return;
         this.state = 'paused';
+        this._pausedFrom = 'playing';
         this.audio.stopThrust();
         this.audio.stopHum();
         this._wasThrustOn = false;
@@ -143,10 +144,14 @@ SC.Game = class Game {
 
     resume() {
         if (this.state !== 'paused') return;
-        this.state = 'playing';
+        const returnTo = this._pausedFrom || 'playing';
+        this.state = returnTo;
+        this._pausedFrom = null;
         this.menu.hide();
-        if (this.touchControls) this.touchControls.show();
-        this.audio.startHum();
+        if (returnTo === 'playing') {
+            if (this.touchControls) this.touchControls.show();
+            this.audio.startHum();
+        }
         // Clear input state so held keys from menu don't carry over
         this.input.keys = {};
         this.input.prev = {};
@@ -158,6 +163,10 @@ SC.Game = class Game {
         if (this.state === 'title') {
             if (this.input.justPressed(SC.keyBindings.fire.code) || this.input.justPressed('Space')) {
                 this.startGame();
+            } else if (this.input.justPressed(SC.keyBindings.pause.code)) {
+                this.menu.show();
+                this.state = 'paused';
+                this._pausedFrom = 'title';
             }
             this.input.update();
             return;

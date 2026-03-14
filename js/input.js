@@ -13,6 +13,7 @@ SC.keyCodeToLabel = function(code) {
         'AltLeft': 'LEFT ALT', 'AltRight': 'RIGHT ALT',
         'Tab': 'TAB', 'Backspace': 'BACKSPACE',
         'CapsLock': 'CAPS LOCK', 'Delete': 'DELETE',
+        'Mouse0': 'LEFT CLICK', 'Mouse1': 'MIDDLE CLICK', 'Mouse2': 'RIGHT CLICK',
     };
     if (map[code]) return map[code];
     if (code.startsWith('Key')) return code.slice(3);
@@ -81,6 +82,27 @@ SC.Input = class Input {
         });
         window.addEventListener('keyup', (e) => {
             this.keys[e.code] = false;
+        });
+
+        // Mouse button support
+        const canvas = document.getElementById('gameCanvas');
+        canvas.addEventListener('mousedown', (e) => {
+            const code = 'Mouse' + e.button;
+            this.keys[code] = true;
+            // Prevent context menu for right-click if bound
+            const boundCodes = Object.values(SC.keyBindings).map(b => b.code);
+            if (boundCodes.includes(code)) {
+                e.preventDefault();
+            }
+        });
+        canvas.addEventListener('mouseup', (e) => {
+            this.keys['Mouse' + e.button] = false;
+        });
+        canvas.addEventListener('contextmenu', (e) => {
+            const boundCodes = Object.values(SC.keyBindings).map(b => b.code);
+            if (boundCodes.includes('Mouse2')) {
+                e.preventDefault();
+            }
         });
 
         // On touch devices, tapping the canvas acts as Space (for title/gameover)

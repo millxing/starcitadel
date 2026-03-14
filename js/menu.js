@@ -326,7 +326,7 @@ SC.Menu = class Menu {
 
         this.listeningAction = actionKey;
         const btn = this.bindingButtons[actionKey];
-        btn.textContent = 'PRESS A KEY...';
+        btn.textContent = 'KEY OR CLICK...';
         btn.style.borderColor = '#ffff33';
         btn.style.background = 'rgba(255, 255, 51, 0.15)';
         btn.style.color = '#ffff33';
@@ -353,14 +353,36 @@ SC.Menu = class Menu {
             this._syncBindings();
         };
 
+        this._onMouseCapture = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const code = 'Mouse' + e.button;
+            SC.rebindKey(actionKey, code);
+            this._stopListening();
+            this._syncBindings();
+        };
+
         // Use capture phase to intercept before game input
         window.addEventListener('keydown', this._onKeyCapture, true);
+        // Delay mouse listener so the click that opened listening mode doesn't bind
+        this._mouseListenTimer = setTimeout(() => {
+            this._mouseListenTimer = null;
+            window.addEventListener('mousedown', this._onMouseCapture, true);
+        }, 300);
     }
 
     _stopListening() {
         if (this._onKeyCapture) {
             window.removeEventListener('keydown', this._onKeyCapture, true);
             this._onKeyCapture = null;
+        }
+        if (this._mouseListenTimer) {
+            clearTimeout(this._mouseListenTimer);
+            this._mouseListenTimer = null;
+        }
+        if (this._onMouseCapture) {
+            window.removeEventListener('mousedown', this._onMouseCapture, true);
+            this._onMouseCapture = null;
         }
         if (this.listeningAction) {
             const btn = this.bindingButtons[this.listeningAction];
