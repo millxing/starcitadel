@@ -1,13 +1,21 @@
 window.SC = window.SC || {};
 
 SC.HUD = class HUD {
-    draw(renderer, score, lives, level) {
+    draw(renderer, score, lives, level, highScore) {
         const C = SC.CONST;
         // Score top-left
         renderer.drawText(
             score.toString().padStart(6, '0'),
             80, 30, 22, C.COLOR_HUD, 'center', 6
         );
+
+        // High score below score
+        if (highScore > 0) {
+            renderer.drawText(
+                'High Score = ' + highScore,
+                80, 54, 12, '#ffff33', 'center', 3
+            );
+        }
 
         // Level top-center
         renderer.drawText(
@@ -29,7 +37,7 @@ SC.HUD = class HUD {
         }
     }
 
-    drawTitle(renderer) {
+    drawTitle(renderer, highScore) {
         const cx = renderer.w / 2;
         const cy = renderer.h / 2;
 
@@ -39,6 +47,9 @@ SC.HUD = class HUD {
         if (SC.isTouchDevice) {
             renderer.drawText('TAP TO START', cx, cy - 200, 20, '#ffffff', 'center', 8);
             renderer.drawText('USE ON-SCREEN CONTROLS', cx, cy + 210, 15, '#4488ff', 'center', 5);
+            if (highScore > 0) {
+                renderer.drawText('High Score = ' + highScore, cx, cy + 245, 16, '#ffff33', 'center', 4);
+            }
         } else {
             const b = SC.keyBindings;
 
@@ -69,6 +80,11 @@ SC.HUD = class HUD {
             // Pause centered on its own row
             const pauseY = y + rows.length * lineHeight;
             renderer.drawText(b.pause.label + ' = PAUSE', cx, pauseY, 15, '#4488ff', 'center', 5);
+
+            // High score below controls
+            if (highScore > 0) {
+                renderer.drawText('High Score = ' + highScore, cx, pauseY + 35, 16, '#ffff33', 'center', 4);
+            }
         }
     }
 

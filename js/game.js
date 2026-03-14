@@ -538,7 +538,7 @@ SC.Game = class Game {
         if (this.state === 'title') {
             // Draw decorative rings on title
             this.drawTitleRings();
-            this.hud.drawTitle(r);
+            this.hud.drawTitle(r, this.highScore);
             return;
         }
 
@@ -571,7 +571,7 @@ SC.Game = class Game {
         this.particles.drawParticles(r);
 
         if (this.state === 'playing' || this.state === 'paused' || this.state === 'levelTransition') {
-            this.hud.draw(r, this.score, this.lives, this.level);
+            this.hud.draw(r, this.score, this.lives, this.level, this.highScore);
         }
 
         if (this.state === 'levelTransition') {
