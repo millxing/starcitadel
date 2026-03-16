@@ -626,6 +626,48 @@ SC.Audio = class Audio {
         noise.stop(now + 0.12);
     }
 
+    // ===== ONE-SHOT: Countermeasure Deploy =====
+    // Quick scatter burst — metallic spray sound
+    playCountermeasureDeploy() {
+        if (!this._ensure()) return;
+        const ctx = this.ctx;
+        const now = ctx.currentTime;
+
+        // Metallic scatter — rising then falling
+        const osc = ctx.createOscillator();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(200, now);
+        osc.frequency.exponentialRampToValueAtTime(600, now + 0.05);
+        osc.frequency.exponentialRampToValueAtTime(150, now + 0.2);
+
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.linearRampToValueAtTime(0.1, now + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+        osc.start(now);
+        osc.stop(now + 0.25);
+
+        // Noise burst for scatter texture
+        const noise = ctx.createBufferSource();
+        noise.buffer = this._noiseBuffer(0.2);
+        const bpf = ctx.createBiquadFilter();
+        bpf.type = 'bandpass';
+        bpf.frequency.value = 2000;
+        bpf.Q.value = 0.8;
+        const noiseGain = ctx.createGain();
+        noiseGain.gain.setValueAtTime(0.12, now);
+        noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+
+        noise.connect(bpf);
+        bpf.connect(noiseGain);
+        noiseGain.connect(this.masterGain);
+        noise.start(now);
+        noise.stop(now + 0.18);
+    }
+
     // ===== ONE-SHOT: Game Start =====
     playGameStart() {
         if (!this._ensure()) return;

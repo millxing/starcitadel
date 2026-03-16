@@ -49,7 +49,7 @@ SC.Mine = class Mine {
         this.vel = outDir.scale(this.speed);
     }
 
-    update(dt, playerPos, w, h, ringSystem) {
+    update(dt, playerPos, w, h, ringSystem, countermeasures) {
         this.pulsePhase += dt * 8;
         if (this.fadeIn > 0) this.fadeIn -= dt;
 
@@ -105,8 +105,25 @@ SC.Mine = class Mine {
         this.wanderPhase += this.wanderFreq * dt;
         const wanderOffset = Math.sin(this.wanderPhase) * 0.15; // ±~8 degrees
 
-        // Homing: steer toward player with slight wander offset
-        const toPlayer = playerPos.sub(this.pos).normalize().rotate(wanderOffset);
+        // Determine target: track nearest countermeasure if closer than player
+        let targetPos = playerPos;
+        if (countermeasures && countermeasures.length > 0) {
+            const distToPlayer = this.pos.distTo(playerPos);
+            let closestCM = null;
+            let closestDist = distToPlayer;
+            for (const cm of countermeasures) {
+                if (!cm.alive) continue;
+                const d = this.pos.distTo(cm.pos);
+                if (d < closestDist) {
+                    closestDist = d;
+                    closestCM = cm;
+                }
+            }
+            if (closestCM) targetPos = closestCM.pos;
+        }
+
+        // Homing: steer toward target with slight wander offset
+        const toPlayer = targetPos.sub(this.pos).normalize().rotate(wanderOffset);
         const currentDir = this.vel.normalize();
         const blended = currentDir.add(
             toPlayer.sub(currentDir).scale(SC.CONST.MINE_TURN_RATE * dt)

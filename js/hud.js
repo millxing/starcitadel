@@ -1,7 +1,7 @@
 window.SC = window.SC || {};
 
 SC.HUD = class HUD {
-    draw(renderer, score, lives, level, highScore) {
+    draw(renderer, score, lives, level, highScore, countermeasureReady, hyperspaceReady) {
         const C = SC.CONST;
         // Score top-left
         renderer.drawText(
@@ -35,6 +35,20 @@ SC.HUD = class HUD {
             ];
             renderer.drawPolygon(pts, C.COLOR_SHIP, 1, 4);
         }
+
+        // Countermeasure indicator - below lives
+        const cmX = renderer.w - 30;
+        const cmY = 55;
+        const cmColor = countermeasureReady ? C.COLOR_COUNTERMEASURE : '#224422';
+        const cmGlow = countermeasureReady ? 4 : 0;
+        renderer.drawText('CM', cmX, cmY, 10, cmColor, 'center', cmGlow);
+
+        // Hyperspace indicator
+        const hsX = renderer.w - 55;
+        const hsY = 55;
+        const hsColor = hyperspaceReady ? '#88aaff' : '#222244';
+        const hsGlow = hyperspaceReady ? 4 : 0;
+        renderer.drawText('H', hsX, hsY, 10, hsColor, 'center', hsGlow);
     }
 
     drawTitle(renderer, highScore) {
@@ -60,6 +74,7 @@ SC.HUD = class HUD {
             const rows = [
                 { left: { label: b.left.label, action: 'LEFT' }, right: { label: b.right.label, action: 'RIGHT' } },
                 { left: { label: b.fire.label, action: 'FIRE' }, right: { label: b.thrust.label, action: 'THRUST' } },
+                { left: { label: b.countermeasure.label, action: 'COUNTERMEASURE' }, right: { label: b.hyperspace.label, action: 'HYPERSPACE' } },
             ];
 
             const colGap = 100;
@@ -67,14 +82,21 @@ SC.HUD = class HUD {
             const lineHeight = 26;
 
             for (let i = 0; i < rows.length; i++) {
-                renderer.drawText(
-                    rows[i].left.label + ' = ' + rows[i].left.action,
-                    cx - colGap, y + i * lineHeight, 15, '#4488ff', 'center', 5
-                );
-                renderer.drawText(
-                    rows[i].right.label + ' = ' + rows[i].right.action,
-                    cx + colGap, y + i * lineHeight, 15, '#4488ff', 'center', 5
-                );
+                if (rows[i].right) {
+                    renderer.drawText(
+                        rows[i].left.label + ' = ' + rows[i].left.action,
+                        cx - colGap, y + i * lineHeight, 15, '#4488ff', 'center', 5
+                    );
+                    renderer.drawText(
+                        rows[i].right.label + ' = ' + rows[i].right.action,
+                        cx + colGap, y + i * lineHeight, 15, '#4488ff', 'center', 5
+                    );
+                } else {
+                    renderer.drawText(
+                        rows[i].left.label + ' = ' + rows[i].left.action,
+                        cx, y + i * lineHeight, 15, '#4488ff', 'center', 5
+                    );
+                }
             }
 
             // Pause centered on its own row

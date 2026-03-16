@@ -25,6 +25,11 @@ SC.Game = class Game {
         this.cannon = null;
         this.mines = [];
         this.mineRespawnTimers = [];
+        this.countermeasures = [];
+        this.countermeasureReady = false;
+        this._lastCMScoreMilestone = 0;
+        this.hyperspaceReady = false;
+        this._lastHSScoreMilestone = 0;
 
         this._bounceCooldown = 0;
 
@@ -37,6 +42,11 @@ SC.Game = class Game {
         this.level = 0;
         this.state = 'playing';
         this.debris = [];
+        this.countermeasures = [];
+        this.countermeasureReady = true;
+        this._lastCMScoreMilestone = 0;
+        this.hyperspaceReady = false;
+        this._lastHSScoreMilestone = 0;
         this.audio.playGameStart();
         // Clear input so the Space/fire key that started the game doesn't auto-fire
         this.input.keys = {};
@@ -128,6 +138,24 @@ SC.Game = class Game {
         if (newMilestone > oldMilestone) {
             this.lives++;
             this.audio.playExtraLife();
+        }
+        // Refill countermeasures every COUNTERMEASURE_SCORE_INTERVAL points
+        const cmInterval = SC.CONST.COUNTERMEASURE_SCORE_INTERVAL;
+        const newCMMilestone = Math.floor(this.score / cmInterval);
+        if (newCMMilestone > this._lastCMScoreMilestone) {
+            this._lastCMScoreMilestone = newCMMilestone;
+            if (!this.countermeasureReady) {
+                this.countermeasureReady = true;
+            }
+        }
+        // Refill hyperspace every HYPERSPACE_SCORE_INTERVAL points
+        const hsInterval = SC.CONST.HYPERSPACE_SCORE_INTERVAL;
+        const newHSMilestone = Math.floor(this.score / hsInterval);
+        if (newHSMilestone > this._lastHSScoreMilestone) {
+            this._lastHSScoreMilestone = newHSMilestone;
+            if (!this.hyperspaceReady) {
+                this.hyperspaceReady = true;
+            }
         }
     }
 
@@ -300,6 +328,42 @@ SC.Game = class Game {
             }
         }
 
+        // Deploy countermeasures
+        if (this.input.countermeasure && this.player.alive && this.countermeasureReady) {
+            this.countermeasureReady = false;
+            const C = SC.CONST;
+            for (let i = 0; i < C.COUNTERMEASURE_COUNT; i++) {
+                this.countermeasures.push(new SC.Countermeasure(
+                    this.player.pos.x, this.player.pos.y, this.player.angle
+                ));
+            }
+            this.audio.playCountermeasureDeploy();
+        }
+
+        // Hyperspace
+        if (this.input.hyperspace && this.player.alive && this.hyperspaceReady) {
+            this.hyperspaceReady = false;
+            const cx = r.cx, cy = r.cy;
+            const minDist = SC.CONST.HYPERSPACE_MIN_DIST;
+            // Particle burst at old position
+            this.particles.emit(this.player.pos.x, this.player.pos.y, 20, SC.CONST.COLOR_SHIP, 120, 0.6, 2);
+            // Find a random position outside the citadel radius
+            let nx, ny;
+            do {
+                nx = Math.random() * w;
+                ny = Math.random() * h;
+            } while (Math.sqrt((nx - cx) * (nx - cx) + (ny - cy) * (ny - cy)) < minDist);
+            this.player.pos = new SC.Vec2(nx, ny);
+            this.player.vel = new SC.Vec2(0, 0);
+            this.player.invulnTimer = SC.CONST.PLAYER_INVULN_TIME;
+            // Particle burst at new position
+            this.particles.emit(nx, ny, 20, SC.CONST.COLOR_SHIP, 120, 0.6, 2);
+        }
+
+        // Update countermeasures
+        for (const cm of this.countermeasures) cm.update(dt, w, h);
+        this.countermeasures = this.countermeasures.filter(cm => cm.alive);
+
         // Bullets
         for (const b of this.bullets) b.update(dt, w, h);
         this.bullets = this.bullets.filter(b => b.alive);
@@ -323,7 +387,7 @@ SC.Game = class Game {
 
         // Mines
         for (const m of this.mines) {
-            if (m.alive) m.update(dt, this.player.pos, w, h, this.ringSystem);
+            if (m.alive) m.update(dt, this.player.pos, w, h, this.ringSystem, this.countermeasures);
         }
         this.mines = this.mines.filter(m => m.alive);
 
@@ -422,6 +486,23 @@ SC.Game = class Game {
                 this.audio.playRingBounce();
                 this.particles.emit(playerPos.x, playerPos.y, 6, '#00ffff', 60, 0.3, 1.5);
                 this._bounceCooldown = 0.15;
+            }
+        }
+
+        // Mines vs countermeasures (both blow up on contact)
+        for (const mine of this.mines) {
+            if (!mine.alive || mine.fadeIn > 0) continue;
+            for (const cm of this.countermeasures) {
+                if (!cm.alive) continue;
+                if (mine.pos.distTo(cm.pos) < C.MINE_RADIUS + C.COUNTERMEASURE_RADIUS + 2) {
+                    cm.alive = false;
+                    mine.alive = false;
+                    this.particles.emit(cm.pos.x, cm.pos.y, 8, C.COLOR_COUNTERMEASURE, 60, 0.4, 1.5);
+                    this.particles.emit(mine.pos.x, mine.pos.y, 6, '#ffffff', 60, 0.4, 1.5);
+                    this.audio.playMineDestroyed();
+                    this.mineRespawnTimers.push({ timer: SC.CONST.MINE_SPAWN_DELAY });
+                    break;
+                }
             }
         }
 
@@ -568,6 +649,7 @@ SC.Game = class Game {
 
         for (const b of this.bullets) b.draw(r);
         for (const cb of this.cannonBullets) cb.draw(r);
+        for (const cm of this.countermeasures) cm.draw(r);
         for (const m of this.mines) m.draw(r);
 
         if (this.player) this.player.draw(r, this.time);
@@ -580,7 +662,7 @@ SC.Game = class Game {
         this.particles.drawParticles(r);
 
         if (this.state === 'playing' || this.state === 'paused' || this.state === 'levelTransition') {
-            this.hud.draw(r, this.score, this.lives, this.level, this.highScore);
+            this.hud.draw(r, this.score, this.lives, this.level, this.highScore, this.countermeasureReady, this.hyperspaceReady);
         }
 
         if (this.state === 'levelTransition') {

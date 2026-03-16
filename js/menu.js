@@ -58,6 +58,8 @@ SC.Menu = class Menu {
                 { key: 'right', label: 'Right' },
                 { key: 'thrust', label: 'Thrust' },
                 { key: 'fire', label: 'Fire' },
+                { key: 'countermeasure', label: 'Countermeasure' },
+                { key: 'hyperspace', label: 'Hyperspace' },
                 { key: 'pause', label: 'Pause' },
             ];
 

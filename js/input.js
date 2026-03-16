@@ -28,6 +28,8 @@ const defaultBindings = {
     right:  { code: 'KeyD',   label: 'D' },
     thrust: { code: 'KeyW',   label: 'W' },
     fire:   { code: 'Enter',  label: 'ENTER' },
+    countermeasure: { code: 'KeyQ', label: 'Q' },
+    hyperspace: { code: 'KeyE', label: 'E' },
     pause:  { code: 'KeyP',   label: 'P' },
 };
 
@@ -128,6 +130,8 @@ SC.Input = class Input {
     get right() { return this.isDown(SC.keyBindings.right.code) || this.isDown('_touch_right'); }
     get thrust() { return this.isDown(SC.keyBindings.thrust.code) || this.isDown('_touch_thrust'); }
     get fire() { return this.isDown(SC.keyBindings.fire.code) || this.isDown('_touch_fire'); }
+    get countermeasure() { return this.justPressed(SC.keyBindings.countermeasure.code) || this.justPressed('_touch_countermeasure'); }
+    get hyperspace() { return this.justPressed(SC.keyBindings.hyperspace.code) || this.justPressed('_touch_hyperspace'); }
     get pause() { return this.justPressed(SC.keyBindings.pause.code) || this.justPressed('_touch_pause'); }
     get anyKey() {
         return Object.values(this.keys).some(v => v);
